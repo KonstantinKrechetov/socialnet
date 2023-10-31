@@ -17,7 +17,7 @@ func NewServer() *Server {
 }
 
 func (p *Server) PostLogin(ctx context.Context, request PostLoginRequestObject) (PostLoginResponseObject, error) {
-	resp := "sadas"
+	resp := "success"
 	return PostLogin200JSONResponse{
 		Token: &resp,
 	}, nil

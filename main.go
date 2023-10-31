@@ -30,6 +30,9 @@ func main() {
 		Path:    "/swagger/",
 		SpecURL: "/swagger/doc.json",
 	}, nil))
+	router.Get("/_healthcheck/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode("successful response")
+	})
 
 	// Enable validation of incoming requests
 	validator := chimiddleware.OapiRequestValidatorWithOptions(

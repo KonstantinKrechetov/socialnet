@@ -13,4 +13,4 @@ check:
 	open http://localhost:8000/swagger/
 
 check_curl:
-	curl --location --request POST 'http://localhost:8000/login' --header 'Content-Type: application/json' -d '{"id": "string", "password": "Секретная строка"}'
+	curl --location --request GET 'http://localhost:8000/_healthcheck/'
