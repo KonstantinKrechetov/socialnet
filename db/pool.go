@@ -1,4 +1,4 @@
-package storage
+package db
 
 import (
 	"context"
@@ -15,11 +15,11 @@ type PoolConfig struct {
 	Password string
 	Host     string
 	Port     string
-	Dbname   string
+	DbName   string
 }
 
 func NewPool(ctx context.Context, cfg PoolConfig) *pgxpool.Pool {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Dbname)
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.DbName)
 
 	var db *pgxpool.Pool
 	var err error

@@ -10,25 +10,19 @@ import (
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 	"log"
 	"net/http"
+	"os"
 	"socialnet/api"
+	"socialnet/db"
 	"socialnet/handler/login"
-	"socialnet/storage"
 )
 
 func main() {
 	ctx := context.Background()
 
-	dbConfig := storage.PoolConfig{
-		Username: "postgres",
-		Password: "postgres",
-		Host:     "localhost",
-		Port:     "5433",
-		Dbname:   "postgres",
-	}
-	db := storage.NewPostgres(storage.NewPool(ctx, dbConfig))
+	db := db.NewPostgres(db.NewPool(ctx, parseEnv()))
 	defer db.Close()
 
-	s := api.NewServer(login.NewHandler())
+	s := api.NewServer(login.NewHandler(db))
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
@@ -36,7 +30,6 @@ func main() {
 	}
 
 	router := chi.NewRouter()
-
 	router.Get("/swagger/doc.json", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(swagger)
 	})
@@ -47,9 +40,9 @@ func main() {
 	router.Get("/_healthcheck/", func(w http.ResponseWriter, r *http.Request) {
 		err := db.Ping(ctx)
 		if err != nil {
-			fmt.Printf("failed connecting to db: %v", err)
+			log.Printf("failed connecting to db: %v", err)
 		} else {
-			fmt.Println("successfully connected to db!")
+			log.Println("successfully connected to db!")
 		}
 
 		json.NewEncoder(w).Encode("successful response")
@@ -73,11 +66,12 @@ func main() {
 			BaseRouter: router,
 			Middlewares: []api.MiddlewareFunc{
 				validator,
+				loggerMW,
 			},
 		},
 	)
 
-	addr := ":8000"
+	addr := ":8080"
 	httpServer := http.Server{
 		Addr:    addr,
 		Handler: apiServer,
@@ -89,4 +83,35 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+}
+
+func parseEnv() db.PoolConfig {
+	cfg := db.PoolConfig{
+		Username: "root",
+		Password: "secret",
+		Host:     "database",
+		Port:     "5432",
+		DbName:   "social_net",
+	}
+
+	if user, exists := os.LookupEnv("POSTGRES_USER"); exists {
+		cfg.Username = user
+	}
+	if password, exists := os.LookupEnv("POSTGRES_PASSWORD"); exists {
+		cfg.Password = password
+	}
+	if dbName, exists := os.LookupEnv("POSTGRES_DB"); exists {
+		cfg.DbName = dbName
+	}
+
+	return cfg
+}
+
+func loggerMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer log.Println(fmt.Sprintf("Method: %s successfully handled.", r.Method))
+
+		// serve
+		next.ServeHTTP(w, r)
+	})
 }

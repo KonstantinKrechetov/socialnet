@@ -2,18 +2,31 @@ package login
 
 import (
 	"context"
+	"fmt"
 	"socialnet/api"
+	"socialnet/db/models"
 )
 
-type Handler struct{}
+type storage interface {
+	SelectItem(ctx context.Context) (models.Item, error)
+}
 
-func NewHandler() *Handler {
-	return &Handler{}
+type Handler struct {
+	db storage
+}
+
+func NewHandler(db storage) *Handler {
+	return &Handler{db: db}
 }
 
 func (h *Handler) PostLogin(ctx context.Context, request api.PostLoginRequestObject) (api.PostLoginResponseObject, error) {
-	resp := "success"
+	item, err := h.db.SelectItem(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
 	return api.PostLogin200JSONResponse{
-		Token: &resp,
+		Token: &item.Description,
 	}, nil
 }
