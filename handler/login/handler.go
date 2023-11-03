@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"socialnet/api"
-	"socialnet/db/models"
+	"socialnet/models"
 )
 
 type storage interface {
-	SelectItem(ctx context.Context) (models.Item, error)
+	SelectUser(ctx context.Context) (models.User, error)
 }
 
 type Handler struct {
@@ -19,14 +19,15 @@ func NewHandler(db storage) *Handler {
 	return &Handler{db: db}
 }
 
+// реализовать хендлеры
 func (h *Handler) PostLogin(ctx context.Context, request api.PostLoginRequestObject) (api.PostLoginResponseObject, error) {
-	item, err := h.db.SelectItem(ctx)
+	user, err := h.db.SelectUser(ctx)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
 	return api.PostLogin200JSONResponse{
-		Token: &item.Description,
+		Token: &user.FirstName,
 	}, nil
 }

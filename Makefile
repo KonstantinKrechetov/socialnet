@@ -39,7 +39,7 @@ run:
 check:
 	open http://localhost:8080/swagger/
 
-check_curl:
+healthcheck:
 	curl --location --request GET 'http://localhost:8080/_healthcheck/'
 
 

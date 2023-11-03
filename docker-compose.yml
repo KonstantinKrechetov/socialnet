@@ -5,10 +5,15 @@ services:
     restart: always
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
     ports:
       - "5433:5432"
-#    volumes:
-#      - data:/var/lib/postgresql/data
+    volumes:
+      - data:/var/lib/postgresql/data
 
   server:
     build:
@@ -17,7 +22,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - default
     ports:

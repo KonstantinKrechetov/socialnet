@@ -19,10 +19,16 @@ import (
 func main() {
 	ctx := context.Background()
 
-	db := db.NewPostgres(db.NewPool(ctx, parseEnv()))
-	defer db.Close()
+	cfg := parseEnv()
+	storage := db.NewPostgres(db.NewPool(ctx, cfg))
+	defer storage.Close()
 
-	s := api.NewServer(login.NewHandler(db))
+	err := db.Migrate(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s := api.NewServer(login.NewHandler(storage))
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
@@ -38,7 +44,7 @@ func main() {
 		SpecURL: "/swagger/doc.json",
 	}, nil))
 	router.Get("/_healthcheck/", func(w http.ResponseWriter, r *http.Request) {
-		err := db.Ping(ctx)
+		err := storage.Ping(ctx)
 		if err != nil {
 			log.Printf("failed connecting to db: %v", err)
 		} else {
@@ -109,7 +115,11 @@ func parseEnv() db.PoolConfig {
 
 func loggerMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer log.Println(fmt.Sprintf("Method: %s successfully handled.", r.Method))
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		defer log.Println(fmt.Sprintf("Method: %s has been handled.", fmt.Sprintf("%v://%v%v", scheme, r.Host, r.RequestURI)))
 
 		// serve
 		next.ServeHTTP(w, r)
