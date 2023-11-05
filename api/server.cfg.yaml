@@ -1,3 +1,4 @@
+#  run `make codegen` from Makefile to generate the server
 package: api
 output: api/openapi_gen.go
 generate:

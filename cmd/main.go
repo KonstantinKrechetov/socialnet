@@ -14,13 +14,17 @@ import (
 	"socialnet/api"
 	"socialnet/db"
 	"socialnet/handler/login"
+	"socialnet/handler/user_get_id"
+	"socialnet/handler/user_register"
+	"socialnet/server"
+	"socialnet/service/encryptor"
 )
 
 func main() {
 	ctx := context.Background()
 
 	cfg := parseEnv()
-	storage := db.NewPostgres(db.NewPool(ctx, cfg))
+	storage := db.NewPostgres(db.NewPool(cfg))
 	defer storage.Close()
 
 	err := db.Migrate(cfg)
@@ -28,7 +32,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := api.NewServer(login.NewHandler(storage))
+	encryptorInstance := encryptor.New()
+
+	s := &server.Server{
+		LoginHandler:        login.NewHandler(storage, encryptorInstance),
+		UserGetIdHandler:    user_get_id.NewHandler(storage),
+		UserRegisterHandler: user_register.NewHandler(storage, encryptorInstance),
+	}
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
@@ -92,11 +102,18 @@ func main() {
 }
 
 func parseEnv() db.PoolConfig {
+	// uncomment for debug
+	//host := "localhost"
+	//port := "5433"
+
+	host := "database"
+	port := "5432"
+
 	cfg := db.PoolConfig{
 		Username: "root",
 		Password: "secret",
-		Host:     "database",
-		Port:     "5432",
+		Host:     host,
+		Port:     port,
 		DbName:   "social_net",
 	}
 

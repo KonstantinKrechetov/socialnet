@@ -6,6 +6,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	pgxuuid "github.com/jackc/pgx-gofrs-uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"sync"
@@ -23,13 +25,23 @@ type PoolConfig struct {
 	DbName   string
 }
 
-func NewPool(ctx context.Context, cfg PoolConfig) *pgxpool.Pool {
+func NewPool(cfg PoolConfig) *pgxpool.Pool {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.DbName)
 
 	var db *pgxpool.Pool
-	var err error
 	pgOnce.Do(func() {
-		db, err = pgxpool.New(ctx, dsn)
+		var err error
+		pgxConfig, err := pgxpool.ParseConfig(dsn)
+		if err != nil {
+			panic(err)
+		}
+
+		pgxConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+			pgxuuid.Register(conn.TypeMap())
+			return nil
+		}
+
+		db, err = pgxpool.NewWithConfig(context.TODO(), pgxConfig)
 		if err != nil {
 			log.Fatal("error connecting to database: %w", err)
 		}
