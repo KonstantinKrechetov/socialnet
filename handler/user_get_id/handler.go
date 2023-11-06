@@ -37,7 +37,7 @@ func (h *Handler) GetUserGetId(w http.ResponseWriter, r *http.Request, id api.Us
 	userID, err := uuid.Parse(id)
 	if err != nil {
 		log.Println(fmt.Errorf("failed convert userId to UUID: %w", err))
-		handler.SendError(w, http.StatusBadRequest, "failed convert userId to UUI")
+		handler.SendError(w, http.StatusNotFound, "invalid userID or password")
 		return
 	}
 

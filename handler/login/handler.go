@@ -46,14 +46,14 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	userID, err := uuid.Parse(*req.Id)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to parse userID to UUID: %w", err))
-		handler.SendError(w, http.StatusBadRequest, "failed to parse userID to UUID")
+		handler.SendError(w, http.StatusNotFound, "invalid userID or password")
 		return
 	}
 
 	user, err := h.db.SelectUserById(ctx, userID)
 	if err != nil {
 		log.Println(err)
-		handler.SendError(w, http.StatusBadRequest, "SelectUserById failed")
+		handler.SendError(w, http.StatusInternalServerError, "SelectUserById failed")
 		return
 	}
 
