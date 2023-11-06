@@ -17,6 +17,14 @@ Build and start the services with:
 $ docker-compose up --build
 ```
 
+Try to make requests through the
+```bash
+$ make healthcheck
+```
+```bash
+$ make check
+```
+
 ### Migrations
 Migrations are applied within the code after you run the application.
 

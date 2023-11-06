@@ -48,6 +48,11 @@ func (h *Handler) GetUserGetId(w http.ResponseWriter, r *http.Request, id api.Us
 		return
 	}
 
+	if user == nil {
+		handler.SendError(w, http.StatusNotFound, "invalid userID or password")
+		return
+	}
+
 	birthdate := api.BirthDate{
 		Time: user.Birthdate,
 	}

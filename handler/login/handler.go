@@ -57,6 +57,11 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user == nil {
+		handler.SendError(w, http.StatusNotFound, "invalid userID or password")
+		return
+	}
+
 	password := req.Password
 	if !h.encryptor.ComparePasswordAndHash(*password, user.PasswordHash) {
 		handler.SendError(w, http.StatusNotFound, "invalid userID or password")
