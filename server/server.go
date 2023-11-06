@@ -1,7 +1,7 @@
 package server
 
 import (
-	"context"
+	"net/http"
 	"socialnet/api"
 )
 
@@ -13,16 +13,16 @@ type Server struct {
 }
 
 // Make sure we conform to StrictServerInterface
-var _ api.StrictServerInterface = (*Server)(nil)
+var _ api.ServerInterface = (*Server)(nil)
 
-func (s *Server) PostLogin(ctx context.Context, request api.PostLoginRequestObject) (api.PostLoginResponseObject, error) {
-	return s.LoginHandler.PostLogin(ctx, request)
+func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request) {
+	s.LoginHandler.PostLogin(w, r)
 }
 
-func (s *Server) GetUserGetId(ctx context.Context, request api.GetUserGetIdRequestObject) (api.GetUserGetIdResponseObject, error) {
-	return s.UserGetIdHandler.GetUserGetId(ctx, request)
+func (s *Server) GetUserGetId(w http.ResponseWriter, r *http.Request, id api.UserId) {
+	s.UserGetIdHandler.GetUserGetId(w, r, id)
 }
 
-func (s *Server) PostUserRegister(ctx context.Context, request api.PostUserRegisterRequestObject) (api.PostUserRegisterResponseObject, error) {
-	return s.UserRegisterHandler.PostUserRegister(ctx, request)
+func (s *Server) PostUserRegister(w http.ResponseWriter, r *http.Request) {
+	s.UserRegisterHandler.PostUserRegister(w, r)
 }

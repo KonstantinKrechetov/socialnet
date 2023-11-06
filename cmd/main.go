@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-openapi/runtime/middleware"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 	"log"
@@ -32,14 +31,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	encryptorInstance := encryptor.New()
-
-	s := &server.Server{
-		LoginHandler:        login.NewHandler(storage, encryptorInstance),
-		UserGetIdHandler:    user_get_id.NewHandler(storage),
-		UserRegisterHandler: user_register.NewHandler(storage, encryptorInstance),
-	}
-
 	swagger, err := api.GetSwagger()
 	if err != nil {
 		log.Fatal(err)
@@ -64,25 +55,20 @@ func main() {
 		json.NewEncoder(w).Encode("successful response")
 	})
 
-	// Enable validation of incoming requests
-	validator := nethttpmiddleware.OapiRequestValidatorWithOptions(
-		swagger,
-		&nethttpmiddleware.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: func(c context.Context, input *openapi3filter.AuthenticationInput) error {
-					return nil
-				},
-			},
-		},
-	)
+	encryptorInstance := encryptor.New()
+	s := &server.Server{
+		LoginHandler:        login.NewHandler(storage, encryptorInstance),
+		UserGetIdHandler:    user_get_id.NewHandler(storage),
+		UserRegisterHandler: user_register.NewHandler(storage, encryptorInstance),
+	}
 
 	apiServer := api.HandlerWithOptions(
-		api.NewStrictHandler(s, nil),
+		s,
 		api.ChiServerOptions{
 			BaseRouter: router,
 			Middlewares: []api.MiddlewareFunc{
-				validator,
-				loggerMW,
+				nethttpmiddleware.OapiRequestValidator(swagger), // Enable validation of incoming requests
+				chimiddleware.Logger,
 			},
 		},
 	)
@@ -105,7 +91,6 @@ func parseEnv() db.PoolConfig {
 	// uncomment for debug
 	//host := "localhost"
 	//port := "5433"
-
 	host := "database"
 	port := "5432"
 
@@ -128,17 +113,4 @@ func parseEnv() db.PoolConfig {
 	}
 
 	return cfg
-}
-
-func loggerMW(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		scheme := "http"
-		if r.TLS != nil {
-			scheme = "https"
-		}
-		defer log.Println(fmt.Sprintf("Method: %s has been handled.", fmt.Sprintf("%v://%v%v", scheme, r.Host, r.RequestURI)))
-
-		// serve
-		next.ServeHTTP(w, r)
-	})
 }

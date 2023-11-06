@@ -2,10 +2,13 @@ package user_get_id
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
+	"net/http"
 	"socialnet/api"
+	"socialnet/handler"
 	"socialnet/models"
 )
 
@@ -21,28 +24,44 @@ func NewHandler(db storage) *Handler {
 	return &Handler{db: db}
 }
 
-func (h *Handler) GetUserGetId(ctx context.Context, request api.GetUserGetIdRequestObject) (api.GetUserGetIdResponseObject, error) {
-	userID, err := uuid.Parse(request.Id)
+func (h *Handler) GetUserGetId(w http.ResponseWriter, r *http.Request, id api.UserId) {
+	ctx := r.Context()
+
+	// пример получения сессии
+	//if _, err := handler.GetCookie(r, login.CookieSessionToken); err != nil {
+	//	log.Println(fmt.Errorf("session is empty or expired: %w", err))
+	//	handler.SendError(w, http.StatusBadRequest, "session is empty or expired")
+	//	return
+	//}
+
+	userID, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed convert userId to UUID: %w", err)
+		log.Println(fmt.Errorf("failed convert userId to UUID: %w", err))
+		handler.SendError(w, http.StatusBadRequest, "failed convert userId to UUI")
+		return
 	}
 
 	user, err := h.db.SelectUserById(ctx, userID)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		handler.SendError(w, http.StatusInternalServerError, "SelectUserById failed")
+		return
 	}
 
 	birthdate := api.BirthDate{
 		Time: user.Birthdate,
 	}
 	userIdStr := user.Id.String()
-	return api.GetUserGetId200JSONResponse{
+	out := api.GetUserGetId200JSONResponse{
 		Biography:  &user.Biography,
 		Birthdate:  &birthdate,
 		City:       &user.City,
 		FirstName:  &user.FirstName,
 		Id:         &userIdStr,
 		SecondName: &user.SecondName,
-	}, nil
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(out)
+	return
 }

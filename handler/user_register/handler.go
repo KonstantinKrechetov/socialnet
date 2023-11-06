@@ -2,11 +2,13 @@ package user_register
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"go.octolab.org/pointer"
 	"log"
+	"net/http"
 	"socialnet/api"
+	"socialnet/handler"
 	"socialnet/models"
 )
 
@@ -27,39 +29,42 @@ func NewHandler(db storage, encryptor encryptor) *Handler {
 	return &Handler{db: db, encryptor: encryptor}
 }
 
-func (h *Handler) PostUserRegister(ctx context.Context, request api.PostUserRegisterRequestObject) (api.PostUserRegisterResponseObject, error) {
-	passwordHashed, err := h.encryptor.HashPassword(*request.Body.Password)
+func (h *Handler) PostUserRegister(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req api.PostUserRegisterJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handler.SendError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	passwordHashed, err := h.encryptor.HashPassword(*req.Password)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to hash password: %w", err))
-		return api.PostUserRegister500JSONResponse{
-			N5xxJSONResponse: api.N5xxJSONResponse{
-				Body: struct {
-					Code      *int    `json:"code,omitempty"`
-					Message   string  `json:"message"`
-					RequestId *string `json:"request_id,omitempty"`
-				}{
-					Code:    pointer.ToInt(500),
-					Message: "failed to hash password",
-				},
-			},
-		}, nil
+		handler.SendError(w, http.StatusInternalServerError, "HashPassword failed")
+		return
 	}
 
 	userID, err := h.db.CreateUser(ctx, models.User{
-		FirstName:    *request.Body.FirstName,
-		SecondName:   *request.Body.SecondName,
-		Birthdate:    request.Body.Birthdate.Time,
-		Biography:    *request.Body.Biography,
-		City:         *request.Body.City,
+		FirstName:    *req.FirstName,
+		SecondName:   *req.SecondName,
+		Birthdate:    req.Birthdate.Time,
+		Biography:    *req.Biography,
+		City:         *req.City,
 		PasswordHash: passwordHashed,
 	})
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		handler.SendError(w, http.StatusInternalServerError, "CreateUser failed")
+		return
 	}
 
 	userIdStr := userID.String()
-	return api.PostUserRegister200JSONResponse{
+	out := api.PostUserRegister200JSONResponse{
 		UserId: &userIdStr,
-	}, nil
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(out)
+	return
 }

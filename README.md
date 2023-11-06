@@ -42,5 +42,9 @@ After making your changes, you can rebuild the `server` service by running the c
 $ docker-compose stop server
 $ docker-compose build server
 $ docker-compose up --no-start server
+```
+
+
+```bash
 $ docker-compose start server
 ```

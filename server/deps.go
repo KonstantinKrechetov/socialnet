@@ -1,18 +1,18 @@
 package server
 
 import (
-	"context"
+	"net/http"
 	"socialnet/api"
 )
 
 type LoginHandler interface {
-	PostLogin(ctx context.Context, request api.PostLoginRequestObject) (api.PostLoginResponseObject, error)
+	PostLogin(w http.ResponseWriter, r *http.Request)
 }
 
 type UserGetIdHandler interface {
-	GetUserGetId(ctx context.Context, request api.GetUserGetIdRequestObject) (api.GetUserGetIdResponseObject, error)
+	GetUserGetId(w http.ResponseWriter, r *http.Request, id api.UserId)
 }
 
 type UserRegisterHandler interface {
-	PostUserRegister(ctx context.Context, request api.PostUserRegisterRequestObject) (api.PostUserRegisterResponseObject, error)
+	PostUserRegister(w http.ResponseWriter, r *http.Request)
 }
